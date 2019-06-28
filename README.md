@@ -6,10 +6,10 @@ This is a Discord Bot that runs programs received from users securely!
 Upload supported files with comment "c-compile"! It's simple!
 
 # Features
-* Compile and run *Java* programs
-* Compile and run *GoLang* programs
-* Run *Node.js* programs
-* Run *Python 3* programs
+* Compile and run **Java** programs
+* Compile and run **GoLang** programs
+* Run **Node.js** programs
+* Run **Python 3** programs
 
 # Environment
 |Language|Version|
