@@ -1,5 +1,5 @@
 # About
-This is a Discord Bot that runs programs received from users securely!  
+CompilerBot is a Discord Bot that runs programs received from users securely!  
 (Made for Discord Hack Week 2019)
 
 # Usage
