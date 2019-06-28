@@ -31,7 +31,11 @@ func main(){
 	if er != nil{
 		log.Fatal("You don't have permission to connect to Docker daemon or Docker daemon isn't running!")
 	}
+	log.Println("Updating docker images... (it may takes few minutes)")
 	compiler.Build("java")
+	compiler.Build("python")
+	compiler.Build("nodejs")
+	compiler.Build("golang")
 	discord, err := discordgo.New()
 	discord.Token = "Bot " + os.Getenv("COMPILER_BOT_TOKEN")
 	if err != nil {
@@ -62,10 +66,10 @@ func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 					},
 					&discordgo.MessageEmbedField{
 						Name:   "Environment",
-						Value:  "Java: OpenJDK 64-Bit build 12.0.1+12\n" +
-							"GoLang: GOLANGVER\n" +
-							"Python: PYTHONVER\n" +
-							"Node.js: NODEJSVER",
+						Value:  "Java: [latest](https://hub.docker.com/_/openjdk)\n" +
+							"GoLang: [latest](https://hub.docker.com/_/golang)\n" +
+							"Python: [latest v3](https://hub.docker.com/_/python)\n" +
+							"Node.js: [latest](https://hub.docker.com/_/node)",
 						Inline: false,
 					},
 				},
@@ -124,10 +128,13 @@ func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 			compiler.Run(newUUID,"java",m.ChannelID,s)
 			break
 		case "go":
+			compiler.Run(newUUID,"golang",m.ChannelID,s)
 			break
 		case "js":
+			compiler.Run(newUUID,"nodejs",m.ChannelID,s)
 			break
 		case "py":
+			compiler.Run(newUUID,"python",m.ChannelID,s)
 			break
 
 		}

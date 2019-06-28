@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"io"
 	"log"
@@ -13,6 +14,7 @@ import (
 
 func Build(lang string){
 	downloadFiles(lang)
+	log.Println("Building "+lang+" image...")
 	err := exec.Command("docker", "build" ,"-t", "compile/"+lang,"./"+lang).Run()
 	if err != nil{
 		log.Fatal("Failed to build "+lang+" image!")
@@ -21,19 +23,19 @@ func Build(lang string){
 }
 
 func Run(uuid,lang,channelId string,discord *discordgo.Session){
-	embed := &discordgo.MessageEmbed{
+	compileEmbed := &discordgo.MessageEmbed{
 		Author: &discordgo.MessageEmbedAuthor{},
-		Color:  0xFF0000,
+		Color:  0x00FF00,
 		Fields: []*discordgo.MessageEmbedField{
 			&discordgo.MessageEmbedField{
 				Name:   "Compiling",
-				Value:  "We're compiling your program and it'll be executed!",
+				Value:  "Compiling your program...",
 				Inline: false,
 			},
 		},
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-	discord.ChannelMessageSendEmbed(channelId, embed)
+	discord.ChannelMessageSendEmbed(channelId, compileEmbed)
 	log.Println("Running file with UUID \""+uuid+"\"")
 	path, _ := os.Getwd()
 	src, _ := os.Open(lang+"/compile.sh")
@@ -42,6 +44,19 @@ func Run(uuid,lang,channelId string,discord *discordgo.Session){
 	io.Copy(dst, src)
 	dst.Close()
 	os.Chmod(uuid+"/compile.sh",os.FileMode(0777))
+	runningEmbed := &discordgo.MessageEmbed{
+		Author: &discordgo.MessageEmbedAuthor{},
+		Color:  0x00FF00,
+		Fields: []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Running",
+				Value:  "Running your program...",
+				Inline: false,
+			},
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+	discord.ChannelMessageSendEmbed(channelId, runningEmbed)
 	commandArgs := []string{"run","--rm","-i","-v", path+"/"+uuid+":/build","--network=none","--memory=128MB","compile/"+lang}
 	cmd := exec.Command("docker",commandArgs...)
 	var stderr bytes.Buffer
@@ -73,25 +88,34 @@ func Run(uuid,lang,channelId string,discord *discordgo.Session){
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		discord.ChannelMessageSendEmbed(channelId, embed)
+		log.Println("Execution timed out with UUID \""+uuid+"\"")
 	case _ = <-done:
 		embed := &discordgo.MessageEmbed{
 			Author: &discordgo.MessageEmbedAuthor{},
 			Color:  0x00FF00,
 			Fields: []*discordgo.MessageEmbedField{
-				&discordgo.MessageEmbedField{
-					Name:   "Output",
-					Value:  stdout.String(),
-					Inline: false,
-				},
+			},
+			Title: "Executed",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		if stdout.String() != ""{
+			embed.Fields = append(embed.Fields,&discordgo.MessageEmbedField{
+				Name:   "Output",
+				Value:  stdout.String(),
+				Inline: false,
+			},)
+		}
+		if stderr.String() != ""{
+			embed.Fields = append(embed.Fields,
 				&discordgo.MessageEmbedField{
 					Name:   "Errors",
 					Value:  stderr.String(),
 					Inline: false,
-				},
-			},
-			Timestamp: time.Now().Format(time.RFC3339),
+				},)
 		}
-		discord.ChannelMessageSendEmbed(channelId, embed)
+		_,err := discord.ChannelMessageSendEmbed(channelId, embed)
+		fmt.Println(err)
+		log.Println("Execution done with UUID \""+uuid+"\"")
 	}
 	os.RemoveAll(uuid)
 }
